@@ -62,8 +62,15 @@ public class PhotoAppWidgetProvider extends AppWidgetProvider {
     public void onDeleted(Context context, int[] appWidgetIds) {
         // Clean deleted photos out of our database
         PhotoDatabaseHelper helper = new PhotoDatabaseHelper(context);
-        for (int appWidgetId : appWidgetIds) {
-            helper.deletePhoto(appWidgetId);
+        SQLiteDatabase db = helper.getWritableDatabase();
+        db.beginTransaction();
+        try {
+          for (int appWidgetId : appWidgetIds) {
+            helper.deletePhoto(db, appWidgetId);
+          }
+          db.setTransactionSuccessful();
+        } finally {
+          db.endTransaction();
         }
         helper.close();
     }
@@ -195,9 +202,8 @@ public class PhotoAppWidgetProvider extends AppWidgetProvider {
         /**
          * Remove any bitmap associated with the given appWidgetId.
          */
-        public void deletePhoto(int appWidgetId) {
+        public void deletePhoto(SQLiteDatabase db, int appWidgetId) {
             try {
-                SQLiteDatabase db = getWritableDatabase();
                 String whereClause = String.format("%s=%d", FIELD_APPWIDGET_ID,
                                                    appWidgetId);
                 db.delete(TABLE_PHOTOS, whereClause, null);
